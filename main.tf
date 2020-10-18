@@ -6,6 +6,10 @@ variable "bucket" {
 }
 variable "app_version" {
 }
+variable "notification_topic" {
+  type    = string
+  default = ""
+}
 
 data "aws_caller_identity" "current" {}
 
@@ -24,6 +28,12 @@ resource "aws_lambda_function" "log_group_checker" {
 
   tracing_config {
     mode = "Active"
+  }
+
+  environment {
+    variables = {
+      NOTIFICATION_TOPIC = var.notification_topic
+    }
   }
 }
 
@@ -74,6 +84,13 @@ resource "aws_iam_policy" "log_group_checker_logging" {
         "logs:PutLogEvents"
       ],
       "Resource": "arn:aws:logs:*:${data.aws_caller_identity.current.account_id}:log-group:*",
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "sns:Publish"
+      ],
+      "Resource":"${var.notification_topic == "" ? "*" : var.notification_topic}",
       "Effect": "Allow"
     }
   ]
