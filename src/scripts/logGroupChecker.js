@@ -26,6 +26,27 @@ async function getLogGroups(nextToken) {
     });
 }
 
+async function getMaximumRetentionPolicy() {
+    var client = new AWS.SSM({
+        region: process.env.AWS_REGION
+    });
+
+    return new Promise((resolve, reject) => {
+        var params = {
+            Name: process.env.PARAMETER_NAME
+        };
+
+        client.getParameter(params, function (err, data) {
+            if (err) {
+                reject(err);
+            }
+            else {
+                resolve(data.Parameter.Value);
+            }
+        });
+    });
+}
+
 async function updateLogGroupsRetentionPolicy(logGroup, retentionInDays) {
     var client = new AWS.CloudWatchLogs({
         region: process.env.AWS_REGION
@@ -116,8 +137,16 @@ exports.handler = async (event, context) => {
         return;
     }
 
-    let maximumLogRetention = 3;
+    let maximumLogRetention = "3";
     let logGroupsNeedingUpdated = [];
+
+    await getMaximumRetentionPolicy().then(data => {
+        maximumLogRetention = data;
+    }
+    ).catch(err => {
+        console.error(err);
+        throw err;
+    });
 
     let messages = [];
 
