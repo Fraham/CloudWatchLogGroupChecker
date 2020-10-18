@@ -32,4 +32,4 @@ Remove-Item $dependenciesZipFileName
 
 Write-Host "Finished remove zip files"
 
-terraform apply
+terraform apply -var="bucket=$($s3BucketName)" -var="app_version=$($version)"
