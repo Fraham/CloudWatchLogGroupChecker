@@ -11,7 +11,7 @@ Makes sure that all the CloudWatch log groups have a retention policy.
 
 ## How the system works
 
-1. In the deployments folder is a script `deployToAws.ps1`, it takes the parameters `s3BucketName`, `appVersion`, `notificationTopic`.
+1. In the deployments folder is a script `deployToAws.ps1`, it takes the parameters `s3BucketName`, `appVersion`, `notificationTopic`, `cloudWatchAlarmTopic`.
 1. The script will zip up the scripts in `src\scripts\` and the dependencies in `src\dependencies`. These are the files that run inside the lambda.
 1. Then terraform runs over the system and creates all the components in AWS.
 1. When the lambda is ran, it collects all the log groups in the region and does a check to make sure they all have a retention policy.

@@ -10,6 +10,10 @@ variable "notification_topic" {
   type    = string
   default = ""
 }
+variable "cloud_watch_alarm_topic" {
+  type    = string
+  default = ""
+}
 
 data "aws_caller_identity" "current" {}
 
@@ -120,8 +124,27 @@ resource "aws_iam_role_policy_attachment" "aws_xray_write_only_access" {
 
 resource "aws_ssm_parameter" "maximum_retention_period" {
   name        = "/LogGroupChecker/maximumRetentionPeriod"
-  description = "Maximum retention period for CloudWatch Log Groups, used in LogGroupChecker.."
+  description = "Maximum retention period for CloudWatch Log Groups, used in LogGroupChecker."
   type        = "String"
   value       = 3
   overwrite   = true
+}
+
+resource "aws_cloudwatch_metric_alarm" "log_group_checker_lambda_errors" {
+  alarm_name          = "LogGroupCheckerLambdaErrors"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "1"
+  metric_name         = "Errors"
+  namespace           = "AWS/Lambda"
+  period              = "300"
+  statistic           = "Sum"
+  threshold           = "0"
+  alarm_description   = "LogGroupChecker lambda errors"
+  treat_missing_data  = "notBreaching"
+  dimensions = {
+    FunctionName = aws_lambda_function.log_group_checker.function_name
+  }
+  alarm_actions = [var.cloud_watch_alarm_topic]
+  ok_actions    = [var.cloud_watch_alarm_topic]
+  count         = var.cloud_watch_alarm_topic == "" ? 0 : 1
 }

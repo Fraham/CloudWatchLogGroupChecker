@@ -9,7 +9,11 @@ param(
     
     [Parameter()]
     [string]
-    $notificationTopic = ""
+    $notificationTopic = "",
+
+    [Parameter()]
+    [string]
+    $cloudWatchAlarmTopic = ""
 )
 
 $codeZipFileName = "code.zip"
@@ -36,4 +40,4 @@ Remove-Item $dependenciesZipFileName
 
 Write-Host "Finished remove zip files"
 
-terraform apply -var="bucket=$($s3BucketName)" -var="app_version=$($appVersion)" -var="notification_topic=$($notificationTopic)" -auto-approve
+terraform apply -var="bucket=$($s3BucketName)" -var="app_version=$($appVersion)" -var="notification_topic=$($notificationTopic)" -var="cloud_watch_alarm_topic=$($cloudWatchAlarmTopic)" -auto-approve
