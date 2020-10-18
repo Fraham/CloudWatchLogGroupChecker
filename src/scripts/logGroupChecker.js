@@ -8,7 +8,7 @@ async function getLogGroups(nextToken) {
 
     return new Promise((resolve, reject) => {
         var params = {
-            limit: '2'
+            limit: '5'
         };
 
         if (nextToken) {
@@ -42,7 +42,45 @@ async function updateLogGroupsRetentionPolicy(logGroup, retentionInDays) {
                 reject(err);
             }
             else {
-                console.log(data);
+                resolve(data);
+            }
+        });
+    });
+}
+
+async function publishToSns(messages) {
+    var client = new AWS.SNS({
+        region: process.env.AWS_REGION
+    });
+
+    return new Promise((resolve, reject) => {
+
+
+        if (!process.env.NOTIFICATION_TOPIC) {
+            resolve();
+            return;
+        }
+
+        if (messages.length == 0) {
+            resolve();
+            return;
+        }
+
+        let fullMessage = {
+            "messages": messages
+        };
+
+        var params = {
+            Message: JSON.stringify(fullMessage),
+            Subject: "LogGroupChecker",
+            TopicArn: process.env.NOTIFICATION_TOPIC
+        };
+
+        client.publish(params, function (err, data) {
+            if (err) {
+                reject(err);
+            }
+            else {
                 resolve(data);
             }
         });
@@ -81,9 +119,31 @@ exports.handler = async (event, context) => {
     let maximumLogRetention = 3;
     let logGroupsNeedingUpdated = [];
 
+    let messages = [];
+
     logGroups.forEach(group => {
         if (!group.retentionInDays || group.retentionInDays > maximumLogRetention) {
             console.log(`${group.logGroupName} needs to have its retention policy updated. Current policy: ${group.retentionInDays ? `${group.retentionInDays} days` : "No expiry"}. New policy: ${maximumLogRetention} days.`);
+
+            let title = "CloudWatch Log Groups Retention Updates";
+
+            let lines = [
+                `Log Group: ${group.logGroupName}`,
+                `Current policy: ${group.retentionInDays ? `${group.retentionInDays} days` : "No expiry"}`,
+                `New policy: ${maximumLogRetention} days.`,
+            ];
+
+            let items = [
+                {
+                    colour: "#FF4136",
+                    lines: lines
+                }
+            ];
+
+            messages.push({
+                text: title,
+                items: items
+            });
 
             logGroupsNeedingUpdated.push(group.logGroupName);
         }
@@ -104,4 +164,11 @@ exports.handler = async (event, context) => {
             throw err;
         });
     }
+
+    await publishToSns(messages).then(data => {
+
+    }).catch(err => {
+        console.error(err);
+        throw err;
+    });
 };

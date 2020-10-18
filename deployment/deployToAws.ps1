@@ -3,7 +3,10 @@ param(
     $s3BucketName,
 
     [string]
-    $version
+    $version,
+    
+    [string]
+    $notificationTopic
 )
 
 #todo: check bucket exists and accessible
@@ -32,4 +35,4 @@ Remove-Item $dependenciesZipFileName
 
 Write-Host "Finished remove zip files"
 
-terraform apply -var="bucket=$($s3BucketName)" -var="app_version=$($version)"
+terraform apply -var="bucket=$($s3BucketName)" -var="app_version=$($version)" -var="notification_topic=$($notificationTopic)"
