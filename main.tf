@@ -21,6 +21,10 @@ resource "aws_lambda_function" "log_group_checker" {
   role = aws_iam_role.log_group_checker_exec.arn
 
   layers = [aws_lambda_layer_version.dependencies.arn]
+
+  tracing_config {
+    mode = "Active"
+  }
 }
 
 resource "aws_lambda_layer_version" "dependencies" {
@@ -80,4 +84,9 @@ EOF
 resource "aws_iam_role_policy_attachment" "log_group_checker_logs" {
   role       = aws_iam_role.log_group_checker_exec.name
   policy_arn = aws_iam_policy.log_group_checker_logging.arn
+}
+
+resource "aws_iam_role_policy_attachment" "aws_xray_write_only_access" {
+  role       = aws_iam_role.log_group_checker_exec.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
 }
