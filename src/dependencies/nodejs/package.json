@@ -1,0 +1,7 @@
+{
+  "name": "cloudwatch_log_group_checker",
+  "dependencies": {
+    "aws-sdk": "^2.756.0",
+    "aws-xray-sdk": "^3.2.0"
+  }
+}
