@@ -10,6 +10,11 @@ variable "notification_topic" {
   type    = string
   default = ""
 }
+variable "cloud_watch_alarm_topic" {
+  type    = string
+  description = "The SNS topic for CloudWatch alarms"
+  default = ""
+}
 
 data "aws_caller_identity" "current" {}
 
@@ -30,17 +35,20 @@ resource "aws_lambda_function" "log_group_checker" {
     mode = "Active"
   }
 
+  timeout = 30
+
   environment {
     variables = {
-      NOTIFICATION_TOPIC = var.notification_topic
+      NOTIFICATION_TOPIC = var.notification_topic,
+      PARAMETER_NAME     = aws_ssm_parameter.maximum_retention_period.name
     }
   }
 }
 
 resource "aws_lambda_layer_version" "dependencies" {
   layer_name = "Dependencies"
-  s3_bucket = var.bucket
-  s3_key = "v${var.app_version}/dependencies.zip"
+  s3_bucket  = var.bucket
+  s3_key     = "v${var.app_version}/dependencies.zip"
 }
 
 resource "aws_iam_role" "log_group_checker_exec" {
@@ -92,6 +100,13 @@ resource "aws_iam_policy" "log_group_checker_logging" {
       ],
       "Resource":"${var.notification_topic == "" ? "*" : var.notification_topic}",
       "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "ssm:GetParameter"
+      ],
+      "Resource":"${aws_ssm_parameter.maximum_retention_period.arn}",
+      "Effect": "Allow"
     }
   ]
 }
@@ -106,4 +121,27 @@ resource "aws_iam_role_policy_attachment" "log_group_checker_logs" {
 resource "aws_iam_role_policy_attachment" "aws_xray_write_only_access" {
   role       = aws_iam_role.log_group_checker_exec.name
   policy_arn = "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
+}
+
+resource "aws_ssm_parameter" "maximum_retention_period" {
+  name        = "/LogGroupChecker/maximumRetentionPeriod"
+  description = "Maximum retention period for CloudWatch Log Groups, used in LogGroupChecker."
+  type        = "String"
+  value       = 3
+  overwrite   = true
+}
+
+module "log_group_checker_lambda_errors" {
+  source = "./modules/services/lambda/alarms"  
+  
+  function_name = aws_lambda_function.log_group_checker.function_name
+  cloud_watch_alarm_topic = var.cloud_watch_alarm_topic
+}
+
+module "checke_schedule" {
+  source = "./modules/services/lambda/schedule"  
+  
+  function_name = aws_lambda_function.log_group_checker.function_name
+  function_arn = aws_lambda_function.log_group_checker.arn
+  schedule_expression = "rate(1 day)"
 }
