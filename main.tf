@@ -12,6 +12,7 @@ variable "notification_topic" {
 }
 variable "cloud_watch_alarm_topic" {
   type    = string
+  description = "The SNS topic for CloudWatch alarms"
   default = ""
 }
 
@@ -130,27 +131,14 @@ resource "aws_ssm_parameter" "maximum_retention_period" {
   overwrite   = true
 }
 
-resource "aws_cloudwatch_metric_alarm" "log_group_checker_lambda_errors" {
-  alarm_name          = "LogGroupCheckerLambdaErrors"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = "1"
-  metric_name         = "Errors"
-  namespace           = "AWS/Lambda"
-  period              = "300"
-  statistic           = "Sum"
-  threshold           = "0"
-  alarm_description   = "LogGroupChecker lambda errors"
-  treat_missing_data  = "notBreaching"
-  dimensions = {
-    FunctionName = aws_lambda_function.log_group_checker.function_name
-  }
-  alarm_actions = [var.cloud_watch_alarm_topic]
-  ok_actions    = [var.cloud_watch_alarm_topic]
-  count         = var.cloud_watch_alarm_topic == "" ? 0 : 1
+module "log_group_checker_lambda_errors" {
+  source = "./modules/services/lambda/alarms"  
+  
+  function_name = aws_lambda_function.log_group_checker.function_name
+  cloud_watch_alarm_topic = var.cloud_watch_alarm_topic
 }
 
 resource "aws_cloudwatch_event_rule" "every_day" {
-  name                = "every-one-minute"
   description         = "Fires every one day"
   schedule_expression = "rate(1 day)"
 }
@@ -162,7 +150,7 @@ resource "aws_cloudwatch_event_target" "check_log_groups_every_day" {
 }
 
 resource "aws_lambda_permission" "allow_cloudwatch_to_call_check_log_groups" {
-  statement_id  = "AllowExecutionFromCloudWatch"
+  #statement_id  = "AllowExecutionFromCloudWatch"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.log_group_checker.function_name
   principal     = "events.amazonaws.com"
