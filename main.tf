@@ -148,3 +148,23 @@ resource "aws_cloudwatch_metric_alarm" "log_group_checker_lambda_errors" {
   ok_actions    = [var.cloud_watch_alarm_topic]
   count         = var.cloud_watch_alarm_topic == "" ? 0 : 1
 }
+
+resource "aws_cloudwatch_event_rule" "every_day" {
+  name                = "every-one-minute"
+  description         = "Fires every one day"
+  schedule_expression = "rate(1 day)"
+}
+
+resource "aws_cloudwatch_event_target" "check_log_groups_every_day" {
+  rule      = aws_cloudwatch_event_rule.every_day.name
+  target_id = "lambda"
+  arn       = aws_lambda_function.log_group_checker.arn
+}
+
+resource "aws_lambda_permission" "allow_cloudwatch_to_call_check_log_groups" {
+  statement_id  = "AllowExecutionFromCloudWatch"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.log_group_checker.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.every_day.arn
+}
