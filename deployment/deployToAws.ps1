@@ -22,30 +22,40 @@ param(
 $codeZipFileName = "code.zip"
 $dependenciesZipFileName = "dependencies.zip"
 
-Write-Host "Zipping code and dependencies"
+$s3codeZipFileName = "v$($appVersion)/$($codeZipFileName)"
+$s3dependenciesZipFileName = "v$($appVersion)/$($dependenciesZipFileName)"
 
-7z a $codeZipFileName .\src\scripts\* | Out-Null
-7z a $dependenciesZipFileName .\src\dependencies\* | Out-Null
+#todo: check it files already exist in s3
+$codeExistsInS3 = $false
+$dependenciesExistsInS3 = $false
 
-Write-Host "Finished zipping code and dependencies"
+if (!$codeExistsInS3 -or !$dependenciesExistsInS3) {
 
-Write-Host "Uploading files to s3"
+    Write-Host "Zipping code and dependencies"
 
-aws s3 cp $codeZipFileName "s3://$($s3BucketName)/v$($appVersion)/$($codeZipFileName)"
-aws s3 cp $dependenciesZipFileName "s3://$($s3BucketName)/v$($appVersion)/$($dependenciesZipFileName)"
+    7z a $codeZipFileName .\src\scripts\* | Out-Null
+    7z a $dependenciesZipFileName .\src\dependencies\* | Out-Null
 
-Write-Host "Finished uploading files to s3"
+    Write-Host "Finished zipping code and dependencies"
 
-Write-Host "Remove zip files"
+    Write-Host "Uploading files to s3"
 
-Remove-Item $codeZipFileName
-Remove-Item $dependenciesZipFileName
+    aws s3 cp $codeZipFileName "s3://$($s3BucketName)/$($s3codeZipFileName)"
+    aws s3 cp $dependenciesZipFileName "s3://$($s3BucketName)/$($s3dependenciesZipFileName)"
 
-Write-Host "Finished remove zip files"
+    Write-Host "Finished uploading files to s3"
+
+    Write-Host "Remove zip files"
+
+    Remove-Item $codeZipFileName
+    Remove-Item $dependenciesZipFileName
+
+    Write-Host "Finished remove zip files"
+}
 
 terraform init
 
-if ($updateModules){
+if ($updateModules) {
     terraform get -update
 }
 
