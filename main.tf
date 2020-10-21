@@ -131,14 +131,14 @@ resource "aws_ssm_parameter" "maximum_retention_period" {
   overwrite   = true
 }
 
-module "log_group_checker_lambda_errors" {
+module "log_group_checker_lambda_alarms" {
   source = "github.com/Fraham/TerraformModuleForAws//modules/services/lambda/alarms"
   
   function_name = aws_lambda_function.log_group_checker.function_name
   cloud_watch_alarm_topic = var.cloud_watch_alarm_topic
 }
 
-module "checke_schedule" {
+module "check_schedule" {
   source = "github.com/Fraham/TerraformModuleForAws//modules/services/lambda/schedule"
   
   function_name = aws_lambda_function.log_group_checker.function_name

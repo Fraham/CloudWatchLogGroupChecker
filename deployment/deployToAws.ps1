@@ -13,7 +13,10 @@ param(
 
     [Parameter()]
     [string]
-    $cloudWatchAlarmTopic = ""
+    $cloudWatchAlarmTopic = "",
+
+    [switch]
+    $updateModules
 )
 
 $codeZipFileName = "code.zip"
@@ -41,5 +44,9 @@ Remove-Item $dependenciesZipFileName
 Write-Host "Finished remove zip files"
 
 terraform init
+
+if ($updateModules){
+    terraform get -update
+}
 
 terraform apply -var="bucket=$($s3BucketName)" -var="app_version=$($appVersion)" -var="notification_topic=$($notificationTopic)" -var="cloud_watch_alarm_topic=$($cloudWatchAlarmTopic)" -auto-approve
