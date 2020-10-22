@@ -11,9 +11,9 @@ variable "notification_topic" {
   default = ""
 }
 variable "cloud_watch_alarm_topic" {
-  type    = string
+  type        = string
   description = "The SNS topic for CloudWatch alarms"
-  default = ""
+  default     = ""
 }
 
 data "aws_caller_identity" "current" {}
@@ -133,15 +133,20 @@ resource "aws_ssm_parameter" "maximum_retention_period" {
 
 module "log_group_checker_lambda_alarms" {
   source = "github.com/Fraham/TerraformModuleForAws//modules/services/lambda/alarms"
-  
-  function_name = [aws_lambda_function.log_group_checker.function_name]
+
+  function_name           = [aws_lambda_function.log_group_checker.function_name]
   cloud_watch_alarm_topic = var.cloud_watch_alarm_topic
 }
 
 module "check_schedule" {
   source = "github.com/Fraham/TerraformModuleForAws//modules/services/lambda/schedule"
-  
-  function_name = aws_lambda_function.log_group_checker.function_name
-  function_arn = aws_lambda_function.log_group_checker.arn
-  schedule_expression = "rate(1 day)"
+
+  lambda_schedules = {
+    (aws_lambda_function.log_group_checker.function_name) = {
+      function_name       = aws_lambda_function.log_group_checker.function_name
+      function_arn        = aws_lambda_function.log_group_checker.arn
+      schedule_expression = "rate(1 day)"
+      schedule_name = "${aws_lambda_function.log_group_checker.function_name}-schedule"
+    }
+  }
 }
