@@ -134,7 +134,7 @@ resource "aws_ssm_parameter" "maximum_retention_period" {
 module "log_group_checker_lambda_alarms" {
   source = "github.com/Fraham/TerraformModuleForAws//modules/services/lambda/alarms"
   
-  function_name = aws_lambda_function.log_group_checker.function_name
+  function_name = [aws_lambda_function.log_group_checker.function_name]
   cloud_watch_alarm_topic = var.cloud_watch_alarm_topic
 }
 
